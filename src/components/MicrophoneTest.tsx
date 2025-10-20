@@ -17,6 +17,11 @@ const MicrophoneTest: React.FC = () => {
       setError(null)
       setIsTestingMic(true)
 
+      // Forcer la reprise du contexte audio si nécessaire
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume()
+      }
+
       // Demander explicitement l'accès au microphone
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -38,30 +43,48 @@ const MicrophoneTest: React.FC = () => {
       analyserRef.current = audioContext.createAnalyser()
       const analyser = analyserRef.current
 
-      analyser.fftSize = 256
-      analyser.smoothingTimeConstant = 0.8
+      analyser.fftSize = 2048 // Plus grande FFT pour meilleure sensibilité
+      analyser.smoothingTimeConstant = 0.3 // Moins de lissage pour plus de réactivité
+      analyser.minDecibels = -100 // Plus sensible aux sons faibles
+      analyser.maxDecibels = -10
 
       // Connecter le microphone
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
 
-      // Analyser le niveau audio
-      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      // Analyser le niveau audio avec les deux méthodes
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount)
+      const timeDomainData = new Uint8Array(analyser.fftSize)
 
       const updateLevel = () => {
-        if (!analyser) return
+        if (!analyser || !isTestingMic) return
 
-        analyser.getByteFrequencyData(dataArray)
+        // Méthode 1: Analyse fréquentielle
+        analyser.getByteFrequencyData(frequencyData)
+        const freqAverage = frequencyData.reduce((sum, value) => sum + value, 0) / frequencyData.length
 
-        // Calculer le niveau moyen
-        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
-        const level = Math.round((average / 255) * 100)
-
-        setMicLevel(level)
-
-        if (isTestingMic) {
-          animationRef.current = requestAnimationFrame(updateLevel)
+        // Méthode 2: Analyse temporelle (plus sensible aux sons de guitare)
+        analyser.getByteTimeDomainData(timeDomainData)
+        let rms = 0
+        for (let i = 0; i < timeDomainData.length; i++) {
+          const sample = (timeDomainData[i] - 128) / 128 // Normaliser -1 à 1
+          rms += sample * sample
         }
+        rms = Math.sqrt(rms / timeDomainData.length)
+        const timeLevel = rms * 100 * 5 // Amplifier pour la guitare
+
+        // Prendre le maximum des deux méthodes
+        const level = Math.max(freqAverage / 2.55, timeLevel)
+        const clampedLevel = Math.min(Math.round(level), 100)
+
+        setMicLevel(clampedLevel)
+
+        // Debug: afficher dans la console pour diagnostic
+        if (clampedLevel > 0) {
+          console.log(`Niveau détecté: ${clampedLevel}% (freq: ${freqAverage.toFixed(1)}, time: ${timeLevel.toFixed(1)})`)
+        }
+
+        animationRef.current = requestAnimationFrame(updateLevel)
       }
 
       updateLevel()
@@ -143,8 +166,8 @@ const MicrophoneTest: React.FC = () => {
           <div className="w-full bg-bank-gray rounded-full h-3">
             <div
               className={`h-3 rounded-full transition-all duration-100 ${micLevel > 50 ? 'bg-green-500' :
-                  micLevel > 20 ? 'bg-yellow-500' :
-                    micLevel > 5 ? 'bg-orange-500' : 'bg-red-500'
+                micLevel > 20 ? 'bg-yellow-500' :
+                  micLevel > 5 ? 'bg-orange-500' : 'bg-red-500'
                 }`}
               style={{ width: `${Math.min(micLevel, 100)}%` }}
             />
@@ -161,8 +184,8 @@ const MicrophoneTest: React.FC = () => {
         <button
           onClick={isTestingMic ? stopTest : testMicrophone}
           className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${isTestingMic
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bank-button'
+            ? 'bg-red-500 text-white hover:bg-red-600'
+            : 'bank-button'
             }`}
         >
           {isTestingMic ? (
