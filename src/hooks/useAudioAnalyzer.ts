@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import Pitchfinder from 'pitchfinder'
 import useAudioSettings from './useAudioSettings'
 import { PitchValidator, MedianFilter, findFundamental } from '../utils/advancedPitchDetection'
+import { mobileLogger } from '../utils/mobileLogger'
 
 interface AudioAnalyzerState {
   frequency: number | null
@@ -107,7 +108,7 @@ const useAudioAnalyzer = () => {
             noiseCalibrationFrames++
             if (noiseCalibrationFrames === 60) {
               baselineNoise = noiseSum / 60
-              console.log(`🎸 Accordeur - Bruit de fond calibré: ${(baselineNoise * 100).toFixed(1)}%`)
+              mobileLogger.log(`🎸 Accordeur - Bruit de fond calibré: ${(baselineNoise * 100).toFixed(1)}%`)
             }
           }
 
@@ -129,7 +130,7 @@ const useAudioAnalyzer = () => {
             setState(prev => ({ ...prev, frequency: null }))
             if (frameCount % 60 === 0) {
               const remainingFrames = ignoreUntilFrame - frameCount
-              console.log(`⏳ Pause anti-bruit: encore ${Math.ceil(remainingFrames / 60)} secondes...`)
+              mobileLogger.log(`⏳ Pause anti-bruit: encore ${Math.ceil(remainingFrames / 60)} secondes...`)
             }
             return
           }
@@ -138,7 +139,7 @@ const useAudioAnalyzer = () => {
           if (signalStrength > 8) { // Seuil adapté à ton micro/guitare
             // Message de reprise après une pause anti-bruit
             if (frameCount === ignoreUntilFrame && ignoreUntilFrame > 0) {
-              console.log(`✅ ACCORDEUR RÉACTIVÉ - Prêt à détecter les notes !`)
+              mobileLogger.log(`✅ ACCORDEUR RÉACTIVÉ - Prêt à détecter les notes !`)
             }
             console.log(`🎸 SIGNAL FORT détecté: ${signalStrength.toFixed(1)}% - Analyse en cours...`)
 
@@ -166,7 +167,7 @@ const useAudioAnalyzer = () => {
                 if (previousFrequency !== null && Math.abs(roundedFreq - previousFrequency) < 0.5) {
                   constantFrequencyCount++
                   if (constantFrequencyCount >= CONSTANT_THRESHOLD) {
-                    console.log(`🚫 BRUIT CONSTANT détecté: ${frequency.toFixed(1)} Hz (${constantFrequencyCount} fois) - PAUSE 2 secondes`)
+                    mobileLogger.log(`🚫 BRUIT CONSTANT détecté: ${frequency.toFixed(1)} Hz (${constantFrequencyCount} fois) - PAUSE 2 secondes`)
                     setState(prev => ({ ...prev, frequency: null }))
                     // Ignorer les détections pendant 120 frames (2 secondes) pour laisser le bruit se calmer
                     ignoreUntilFrame = frameCount + 120
@@ -182,7 +183,7 @@ const useAudioAnalyzer = () => {
 
                 // Si c'est une vraie variation, accepter la note
                 if (constantFrequencyCount < CONSTANT_THRESHOLD) {
-                  console.log(`🎵 VRAIE NOTE: ${frequency.toFixed(1)} Hz (signal: ${signalStrength.toFixed(1)}%, variation: ${constantFrequencyCount})`)
+                  mobileLogger.log(`🎵 VRAIE NOTE: ${frequency.toFixed(1)} Hz (signal: ${signalStrength.toFixed(1)}%, variation: ${constantFrequencyCount})`)
                   setState(prev => ({
                     ...prev,
                     frequency: Math.round(frequency * 100) / 100
@@ -212,7 +213,7 @@ const useAudioAnalyzer = () => {
       }
 
       // Démarrer l'analyse
-      console.log('🎸 Démarrage de l\'accordeur...')
+      mobileLogger.log('🎸 Démarrage de l\'accordeur...')
       analyze()
 
     } catch (error) {

@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Mic, MicOff } from 'lucide-react'
 import { GUITAR_TUNING, type GuitarNote, findClosestNote } from '../utils/guitarTuning'
 import useAudioAnalyzer from '../hooks/useAudioAnalyzer'
+import { mobileLogger } from '../utils/mobileLogger'
 
 const Tuner: React.FC = () => {
   const [selectedString, setSelectedString] = useState<GuitarNote>('E2')
@@ -10,23 +11,14 @@ const Tuner: React.FC = () => {
   const [showDebug, setShowDebug] = useState(false)
   const { frequency, isAnalyzing, startAnalysis, stopAnalysis, error } = useAudioAnalyzer()
 
-  // Intercepter les console.log pour les afficher à l'écran
-  React.useEffect(() => {
-    const originalLog = console.log
-    console.log = (...args) => {
-      originalLog(...args)
-      const message = args.join(' ')
-      if (message.includes('🎸') || message.includes('🎯') || message.includes('🚫') || message.includes('⏳') || message.includes('✅')) {
-        setDebugLogs(prev => {
-          const newLogs = [...prev, `${new Date().toLocaleTimeString()}: ${message}`]
-          return newLogs.slice(-10) // Garder seulement les 10 derniers logs
-        })
-      }
-    }
-
-    return () => {
-      console.log = originalLog
-    }
+  // Configurer le logger mobile
+  useEffect(() => {
+    mobileLogger.setCallback((message: string) => {
+      setDebugLogs(prev => {
+        const newLogs = [...prev, message]
+        return newLogs.slice(-10) // Garder seulement les 10 derniers logs
+      })
+    })
   }, [])
 
   const handleToggleListening = async () => {
@@ -229,25 +221,27 @@ const Tuner: React.FC = () => {
 
       {/* Panneau de debug pour mobile */}
       {showDebug && (
-        <div className="bg-black text-green-400 rounded-lg p-4 font-mono text-xs max-h-60 overflow-y-auto">
+        <div className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs max-h-60 overflow-y-auto">
           <div className="flex justify-between items-center mb-2">
-            <h4 className="text-white font-bold">Logs de debug</h4>
-            <button
+            <h4 className="text-white font-bold text-sm">Debug Mobile</h4>
+            <button 
               onClick={() => setDebugLogs([])}
-              className="text-red-400 hover:text-red-300 text-xs"
+              className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded"
             >
               Effacer
             </button>
           </div>
-          {debugLogs.length === 0 ? (
-            <p className="text-gray-500">Aucun log pour le moment...</p>
-          ) : (
-            debugLogs.map((log, index) => (
-              <div key={index} className="mb-1 break-words">
-                {log}
-              </div>
-            ))
-          )}
+          <div className="space-y-1">
+            {debugLogs.length === 0 ? (
+              <p className="text-gray-400">En attente de logs...</p>
+            ) : (
+              debugLogs.map((log, index) => (
+                <div key={index} className="text-xs break-words leading-relaxed">
+                  {log}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
