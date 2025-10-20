@@ -1,0 +1,103 @@
+{
+  "name": "Guitar Learning - Accordeur de Guitare",
+  "short_name": "Guitar Learning",
+  "description": "Application d'apprentissage de la guitare avec accordeur intégré, accords, gammes et exercices animés",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003d82",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr",
+  "categories": ["music", "education", "entertainment"],
+  "icons": [
+    {
+      "src": "/logo16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Accordeur",
+      "short_name": "Accordeur",
+      "description": "Accorder votre guitare",
+      "url": "/?page=tuner",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Accords",
+      "short_name": "Accords",
+      "description": "Bibliothèque d'accords",
+      "url": "/?page=chords",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Exercices",
+      "short_name": "Exercices",
+      "description": "Exercices animés",
+      "url": "/?page=exercises",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}
