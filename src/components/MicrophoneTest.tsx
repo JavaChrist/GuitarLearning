@@ -6,6 +6,7 @@ const MicrophoneTest: React.FC = () => {
   const [micLevel, setMicLevel] = useState(0)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [baselineNoise, setBaselineNoise] = useState(0) // Niveau de bruit de fond
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -17,6 +18,7 @@ const MicrophoneTest: React.FC = () => {
       setError(null)
 
       // Demander explicitement l'accès au microphone
+      console.log('🎤 Demande d\'accès au microphone...')
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -26,64 +28,149 @@ const MicrophoneTest: React.FC = () => {
         }
       })
 
+      console.log('✅ Stream obtenu:', stream)
+      console.log('📊 Tracks audio:', stream.getAudioTracks())
+      console.log('🔊 Track actif:', stream.getAudioTracks()[0]?.enabled)
+
       setHasPermission(true)
       streamRef.current = stream
-      setIsTestingMic(true) // Mettre ici APRÈS avoir obtenu le stream
+      setIsTestingMic(true)
 
       // Créer le contexte audio
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
       const audioContext = audioContextRef.current
+      console.log('🎵 Contexte audio créé, état:', audioContext.state)
 
       // Forcer la reprise du contexte audio si nécessaire
       if (audioContext.state === 'suspended') {
+        console.log('⏯️ Reprise du contexte audio...')
         await audioContext.resume()
+        console.log('✅ Contexte audio repris, nouvel état:', audioContext.state)
       }
 
       // Créer l'analyseur
       analyserRef.current = audioContext.createAnalyser()
       const analyser = analyserRef.current
 
-      analyser.fftSize = 2048 // Plus grande FFT pour meilleure sensibilité
-      analyser.smoothingTimeConstant = 0.1 // Très réactif
-      analyser.minDecibels = -90 // Très sensible
+      analyser.fftSize = 2048
+      analyser.smoothingTimeConstant = 0.1
+      analyser.minDecibels = -90
       analyser.maxDecibels = -10
+
+      console.log('📈 Analyseur configuré:', {
+        fftSize: analyser.fftSize,
+        frequencyBinCount: analyser.frequencyBinCount,
+        sampleRate: audioContext.sampleRate
+      })
 
       // Connecter le microphone
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
+      console.log('🔗 Microphone connecté à l\'analyseur')
 
       // Analyser le niveau audio - Version simplifiée et plus robuste
       const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
+      let frameCount = 0
+      let isAnalyzing = true // Variable locale pour éviter les problèmes d'état
+      let noiseCalibrationFrames = 0
+      let noiseSum = 0
+
       const updateLevel = () => {
-        if (!analyser) return
+        if (!analyser || !isAnalyzing) {
+          console.log('❌ Arrêt analyse:', { analyser: !!analyser, isAnalyzing })
+          return
+        }
 
         try {
+          // Essayer les deux méthodes d'analyse
           analyser.getByteFrequencyData(dataArray)
 
-          // Calculer le niveau avec amplification
+          // Méthode alternative avec TimeDomain (plus fiable)
+          const timeDomainData = new Uint8Array(analyser.fftSize)
+          analyser.getByteTimeDomainData(timeDomainData)
+
+          // Calculer RMS du signal temporel + détection de pics
+          let rms = 0
+          let maxPeak = 0
+          for (let i = 0; i < timeDomainData.length; i++) {
+            const sample = (timeDomainData[i] - 128) / 128 // Normaliser -1 à 1
+            rms += sample * sample
+            maxPeak = Math.max(maxPeak, Math.abs(sample))
+          }
+          rms = Math.sqrt(rms / timeDomainData.length)
+
+          // Calibration du bruit de fond (60 premières frames)
+          if (noiseCalibrationFrames < 60) {
+            noiseSum += rms
+            noiseCalibrationFrames++
+            if (noiseCalibrationFrames === 60) {
+              const avgNoise = noiseSum / 60
+              setBaselineNoise(avgNoise)
+              console.log(`🔇 Bruit de fond calibré: ${(avgNoise * 100).toFixed(1)}%`)
+            }
+          }
+
+          // Soustraire le bruit de fond
+          const cleanRms = Math.max(0, rms - baselineNoise)
+
+          // Prendre le maximum entre RMS et pic pour plus de sensibilité
+          const rmsLevel = cleanRms * 100 * 100 // Amplifier x100 après soustraction du bruit
+          const peakLevel = Math.max(0, maxPeak - (baselineNoise * 2)) * 100 * 50 // Peak avec soustraction bruit
+          const timeLevel = Math.min(Math.round(Math.max(rmsLevel, peakLevel)), 100)
+
+          // Calculer le niveau fréquentiel
           let sum = 0
+          let maxValue = 0
           for (let i = 0; i < dataArray.length; i++) {
             sum += dataArray[i]
+            maxValue = Math.max(maxValue, dataArray[i])
           }
           const average = sum / dataArray.length
-          const level = Math.min(Math.round((average / 255) * 100 * 3), 100) // Amplifier x3
+          const freqLevel = Math.min(Math.round((average / 255) * 100 * 3), 100)
 
+          // Prendre le maximum des deux méthodes
+          const level = Math.max(freqLevel, timeLevel)
           setMicLevel(level)
 
-          // Debug: toujours afficher pour diagnostic
-          console.log(`Audio: ${average.toFixed(1)}/255, Niveau: ${level}%`)
-
-          if (isTestingMic) {
-            animationRef.current = requestAnimationFrame(updateLevel)
+          // Debug détaillé (toutes les 30 frames pour éviter le spam)
+          frameCount++
+          if (frameCount % 30 === 0) {
+            console.log(`🔊 Frame ${frameCount}:`)
+            console.log(`  - Time RMS brut: ${(rms * 100).toFixed(1)}%`)
+            console.log(`  - Bruit de fond: ${(baselineNoise * 100).toFixed(1)}%`)
+            console.log(`  - RMS nettoyé: ${(cleanRms * 100).toFixed(1)}%`)
+            console.log(`  - Time Peak: ${(maxPeak * 100).toFixed(1)}%`)
+            console.log(`  - RMS Level: ${rmsLevel.toFixed(1)}%`)
+            console.log(`  - Peak Level: ${peakLevel.toFixed(1)}%`)
+            console.log(`  - Niveau final: ${level}%`)
+            console.log(`  - Calibration: ${noiseCalibrationFrames}/60`)
           }
+
+          // Continuer l'analyse
+          animationRef.current = requestAnimationFrame(updateLevel)
         } catch (e) {
-          console.error('Erreur analyse audio:', e)
+          console.error('❌ Erreur analyse audio:', e)
         }
       }
 
-      // Démarrer l'analyse
-      updateLevel()
+      // Fonction pour arrêter l'analyse
+      const stopAnalysis = () => {
+        isAnalyzing = false
+        console.log('🛑 Analyse arrêtée')
+      }
+
+      // Nettoyer l'ancienne analyse si elle existe
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+
+      // Démarrer l'analyse avec un délai pour s'assurer que tout est prêt
+      console.log('🚀 Démarrage de l\'analyse...')
+      setTimeout(() => {
+        console.log('⏰ Lancement de l\'analyse après délai')
+        updateLevel()
+      }, 100)
 
     } catch (err) {
       console.error('Erreur accès microphone:', err)
@@ -107,20 +194,37 @@ const MicrophoneTest: React.FC = () => {
   }
 
   const stopTest = () => {
+    console.log('🛑 Arrêt du test microphone')
     setIsTestingMic(false)
     setMicLevel(0)
+    setBaselineNoise(0)
 
+    // Arrêter la boucle d'analyse
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
     }
 
+    // Arrêter le stream
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
+      console.log('🔇 Arrêt du stream audio')
+      streamRef.current.getTracks().forEach(track => {
+        track.stop()
+        console.log('🔇 Track arrêté:', track.label)
+      })
+      streamRef.current = null
     }
 
+    // Fermer le contexte audio
     if (audioContextRef.current) {
-      audioContextRef.current.close()
+      console.log('🔌 Fermeture du contexte audio')
+      audioContextRef.current.close().then(() => {
+        console.log('✅ Contexte audio fermé')
+      })
+      audioContextRef.current = null
     }
+
+    analyserRef.current = null
   }
 
   return (
@@ -234,3 +338,4 @@ const MicrophoneTest: React.FC = () => {
 }
 
 export default MicrophoneTest
+

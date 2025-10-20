@@ -6,7 +6,28 @@ import useAudioAnalyzer from '../hooks/useAudioAnalyzer'
 const Tuner: React.FC = () => {
   const [selectedString, setSelectedString] = useState<GuitarNote>('E2')
   const [isListening, setIsListening] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [showDebug, setShowDebug] = useState(false)
   const { frequency, isAnalyzing, startAnalysis, stopAnalysis, error } = useAudioAnalyzer()
+
+  // Intercepter les console.log pour les afficher à l'écran
+  React.useEffect(() => {
+    const originalLog = console.log
+    console.log = (...args) => {
+      originalLog(...args)
+      const message = args.join(' ')
+      if (message.includes('🎸') || message.includes('🎯') || message.includes('🚫') || message.includes('⏳') || message.includes('✅')) {
+        setDebugLogs(prev => {
+          const newLogs = [...prev, `${new Date().toLocaleTimeString()}: ${message}`]
+          return newLogs.slice(-10) // Garder seulement les 10 derniers logs
+        })
+      }
+    }
+
+    return () => {
+      console.log = originalLog
+    }
+  }, [])
 
   const handleToggleListening = async () => {
     if (isListening) {
@@ -28,6 +49,11 @@ const Tuner: React.FC = () => {
 
   // Calculer l'angle de l'aiguille (-90° à +90°)
   const needleAngle = analysis ? Math.max(-90, Math.min(90, analysis.cents * 3)) : 0
+
+  // Debug seulement quand il y a une fréquence
+  if (frequency) {
+    console.log(`🎯 TUNER - ${frequency} Hz → ${analysis?.note} (${analysis?.cents} cents) → Aiguille: ${needleAngle}°`)
+  }
 
   // Couleur selon la précision
   const getAccuracyColor = (accuracy?: string) => {
@@ -67,8 +93,8 @@ const Tuner: React.FC = () => {
               key={noteKey}
               onClick={() => setSelectedString(noteKey as GuitarNote)}
               className={`p-3 rounded-lg border-2 transition-all duration-200 ${selectedString === noteKey
-                  ? 'border-bank-blue bg-bank-blue text-white'
-                  : 'border-bank-gray-dark bg-white text-bank-text hover:border-bank-blue'
+                ? 'border-bank-blue bg-bank-blue text-white'
+                : 'border-bank-gray-dark bg-white text-bank-text hover:border-bank-blue'
                 }`}
             >
               <div className="font-bold text-lg">{info.name}{info.octave}</div>
@@ -107,16 +133,20 @@ const Tuner: React.FC = () => {
 
             {/* Aiguille */}
             <div
-              className={`absolute w-1 bg-bank-blue transition-transform duration-300 ${isAnalyzing ? 'tuner-active' : ''
+              className={`absolute w-2 bg-red-500 transition-transform duration-200 shadow-lg ${isAnalyzing ? 'tuner-active' : ''
                 }`}
               style={{
                 height: '140px',
                 top: '20px',
                 left: '50%',
                 transformOrigin: '50% 140px',
-                transform: `translateX(-50%) rotate(${needleAngle}deg)`
+                transform: `translateX(-50%) rotate(${needleAngle}deg)`,
+                zIndex: 10
               }}
-            />
+            >
+              {/* Pointe de l'aiguille */}
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-b-4 border-l-transparent border-r-transparent border-b-red-500" />
+            </div>
 
             {/* Centre */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-bank-blue rounded-full" />
@@ -159,13 +189,13 @@ const Tuner: React.FC = () => {
       </div>
 
       {/* Contrôles */}
-      <div className="flex justify-center">
+      <div className="flex justify-center space-x-4">
         <button
           onClick={handleToggleListening}
           disabled={!!error}
           className={`flex items-center space-x-3 px-6 py-4 rounded-lg font-medium transition-all duration-200 ${isListening
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bank-button'
+            ? 'bg-red-500 text-white hover:bg-red-600'
+            : 'bank-button'
             } ${error ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isListening ? (
@@ -180,6 +210,13 @@ const Tuner: React.FC = () => {
             </>
           )}
         </button>
+
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+        >
+          {showDebug ? 'Masquer' : 'Debug'}
+        </button>
       </div>
 
       {/* Message d'erreur */}
@@ -187,6 +224,30 @@ const Tuner: React.FC = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
           <p className="text-red-600 font-medium">Erreur d'accès au microphone</p>
           <p className="text-red-500 text-sm mt-1">{error}</p>
+        </div>
+      )}
+
+      {/* Panneau de debug pour mobile */}
+      {showDebug && (
+        <div className="bg-black text-green-400 rounded-lg p-4 font-mono text-xs max-h-60 overflow-y-auto">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-white font-bold">Logs de debug</h4>
+            <button
+              onClick={() => setDebugLogs([])}
+              className="text-red-400 hover:text-red-300 text-xs"
+            >
+              Effacer
+            </button>
+          </div>
+          {debugLogs.length === 0 ? (
+            <p className="text-gray-500">Aucun log pour le moment...</p>
+          ) : (
+            debugLogs.map((log, index) => (
+              <div key={index} className="mb-1 break-words">
+                {log}
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

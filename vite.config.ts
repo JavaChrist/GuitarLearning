@@ -85,7 +85,7 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 3000,
+    port: 3005,
     host: true,
     force: true // Force la reconstruction
   },
