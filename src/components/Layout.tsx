@@ -1,5 +1,5 @@
 import React from 'react'
-import { Music, BookOpen, Scale, Target, Settings } from 'lucide-react'
+import { Music, BookOpen, Scale, Target, Settings, Home } from 'lucide-react'
 import type { Page } from '../App'
 
 interface LayoutProps {
@@ -10,7 +10,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) => {
   const navigationItems = [
-    { id: 'tuner', label: 'Accordeur', icon: Music },
+    { id: 'home', label: 'Accueil', icon: Home },
     { id: 'chords', label: 'Accords', icon: BookOpen },
     { id: 'scales', label: 'Gammes', icon: Scale },
     { id: 'exercises', label: 'Exercices', icon: Target },
@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-xl font-bold leading-tight">Guitar Learning</h1>
-                  <p className="text-sm text-blue-200 leading-tight">Accordeur de guitare</p>
+                  <p className="text-sm text-blue-200 leading-tight">Apprentissage guitare</p>
                 </div>
               </div>
               <div className="text-right flex-shrink-0 ml-2">

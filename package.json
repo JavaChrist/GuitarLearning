@@ -22,7 +22,6 @@
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "lucide-react": "^0.546.0",
-    "pitchfinder": "^2.3.2",
     "postcss": "^8.5.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

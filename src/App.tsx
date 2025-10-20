@@ -1,20 +1,20 @@
 import React, { useState } from 'react'
 import Layout from './components/Layout'
-import Tuner from './components/Tuner'
+import Home from './components/Home'
 import Chords from './components/Chords'
 import Scales from './components/Scales'
 import Exercises from './components/Exercises'
 import Settings from './components/Settings'
 
-export type Page = 'tuner' | 'chords' | 'scales' | 'exercises' | 'settings'
+export type Page = 'home' | 'chords' | 'scales' | 'exercises' | 'settings'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('tuner')
+  const [currentPage, setCurrentPage] = useState<Page>('home')
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'tuner':
-        return <Tuner />
+      case 'home':
+        return <Home />
       case 'chords':
         return <Chords />
       case 'scales':
@@ -24,7 +24,7 @@ function App() {
       case 'settings':
         return <Settings />
       default:
-        return <Tuner />
+        return <Home />
     }
   }
 
