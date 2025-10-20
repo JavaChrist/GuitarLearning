@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Settings as SettingsIcon, Volume2, Mic, Smartphone, RotateCcw, AlertTriangle } from 'lucide-react'
 import useAudioSettings from '../hooks/useAudioSettings'
+import MicrophoneTest from './MicrophoneTest'
 
 const Settings: React.FC = () => {
   const { settings, updateSetting, resetToDefaults } = useAudioSettings()
@@ -18,6 +19,9 @@ const Settings: React.FC = () => {
         <h2 className="text-2xl font-bold text-bank-text mb-2">Paramètres</h2>
         <p className="text-bank-text-light">Configurez votre expérience d'accordage</p>
       </div>
+
+      {/* Test du microphone */}
+      <MicrophoneTest />
 
       {/* Paramètres audio */}
       <div className="bg-white border border-bank-gray-dark rounded-lg p-4">
@@ -38,7 +42,7 @@ const Settings: React.FC = () => {
               max="100"
               value={settings.sensitivity}
               onChange={(e) => updateSetting('sensitivity', Number(e.target.value))}
-              className="w-full h-2 bg-bank-gray rounded-lg appearance-none cursor-pointer"
+              className="w-full h-3 bg-bank-gray rounded-lg appearance-none cursor-pointer slider-thumb"
             />
             <div className="flex justify-between text-xs text-bank-text-light mt-1">
               <span>Faible</span>
@@ -119,7 +123,7 @@ const Settings: React.FC = () => {
               step="0.01"
               value={settings.threshold}
               onChange={(e) => updateSetting('threshold', Number(e.target.value))}
-              className="w-full h-2 bg-bank-gray rounded-lg appearance-none cursor-pointer"
+              className="w-full h-3 bg-bank-gray rounded-lg appearance-none cursor-pointer slider-thumb"
             />
             <div className="flex justify-between text-xs text-bank-text-light mt-1">
               <span>Permissif</span>
@@ -166,7 +170,7 @@ const Settings: React.FC = () => {
                   step="2048"
                   value={settings.fftSize}
                   onChange={(e) => updateSetting('fftSize', Number(e.target.value))}
-                  className="w-full h-2 bg-bank-gray rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-3 bg-bank-gray rounded-lg appearance-none cursor-pointer slider-thumb"
                 />
                 <p className="text-xs text-bank-text-light mt-1">Plus élevé = plus précis mais plus lent</p>
               </div>
@@ -184,7 +188,7 @@ const Settings: React.FC = () => {
                   step="0.1"
                   value={settings.smoothingTimeConstant}
                   onChange={(e) => updateSetting('smoothingTimeConstant', Number(e.target.value))}
-                  className="w-full h-2 bg-bank-gray rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-3 bg-bank-gray rounded-lg appearance-none cursor-pointer slider-thumb"
                 />
                 <p className="text-xs text-bank-text-light mt-1">Plus élevé = plus stable mais moins réactif</p>
               </div>

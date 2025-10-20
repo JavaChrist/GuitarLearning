@@ -75,3 +75,63 @@ body {
 .tuner-active {
   animation: tuner-pulse 1s ease-in-out infinite;
 }
+
+/* Styles personnalisés pour les curseurs */
+.slider-thumb {
+  background: linear-gradient(90deg, #003d82 0%, #1e5ba8 100%);
+}
+
+.slider-thumb::-webkit-slider-thumb {
+  appearance: none;
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #003d82;
+  cursor: pointer;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 61, 130, 0.3);
+  transition: all 0.2s ease-in-out;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  background: #1e5ba8;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 61, 130, 0.5);
+}
+
+.slider-thumb::-webkit-slider-thumb:active {
+  background: #002856;
+  transform: scale(1.2);
+}
+
+.slider-thumb::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #003d82;
+  cursor: pointer;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 61, 130, 0.3);
+  transition: all 0.2s ease-in-out;
+}
+
+.slider-thumb::-moz-range-thumb:hover {
+  background: #1e5ba8;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 61, 130, 0.5);
+}
+
+/* Track styles */
+.slider-thumb::-webkit-slider-runnable-track {
+  height: 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+}
+
+.slider-thumb::-moz-range-track {
+  height: 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+}

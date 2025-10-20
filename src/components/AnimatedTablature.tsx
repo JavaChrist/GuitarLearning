@@ -183,34 +183,49 @@ const AnimatedTablature: React.FC<AnimatedTablatureProps> = ({
         </div>
 
         {/* Contrôles de paramètres */}
-        <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6">
+        <div className="space-y-3">
           {/* Contrôle du tempo */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-bank-text font-medium">Tempo:</label>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm text-bank-text font-medium">Tempo:</label>
+              <span className="text-sm text-bank-text font-bold">{tempo} BPM</span>
+            </div>
             <input
               type="range"
               min="60"
               max="200"
               value={tempo}
               onChange={(e) => setTempo(Number(e.target.value))}
-              className="w-20"
+              className="w-full h-3 bg-bank-gray rounded-lg appearance-none cursor-pointer slider-thumb"
             />
-            <span className="text-sm text-bank-text w-8">{tempo}</span>
+            <div className="flex justify-between text-xs text-bank-text-light mt-1">
+              <span>60 BPM</span>
+              <span>200 BPM</span>
+            </div>
           </div>
 
           {/* Contrôle du volume */}
-          <div className="flex items-center space-x-2">
-            <Volume2 className="w-4 h-4 text-bank-text" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <Volume2 className="w-4 h-4 text-bank-text" />
+                <label className="text-sm text-bank-text font-medium">Volume:</label>
+              </div>
+              <span className="text-sm text-bank-text font-bold">{Math.round(volume * 100)}%</span>
+            </div>
             <input
               type="range"
               min="0"
               max="1"
-              step="0.1"
+              step="0.05"
               value={volume}
               onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-16"
+              className="w-full h-3 bg-bank-gray rounded-lg appearance-none cursor-pointer slider-thumb"
             />
-            <span className="text-xs text-bank-text-light">{Math.round(volume * 100)}%</span>
+            <div className="flex justify-between text-xs text-bank-text-light mt-1">
+              <span>Muet</span>
+              <span>Maximum</span>
+            </div>
           </div>
         </div>
       </div>
