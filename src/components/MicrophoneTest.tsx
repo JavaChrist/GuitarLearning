@@ -15,12 +15,6 @@ const MicrophoneTest: React.FC = () => {
   const testMicrophone = async () => {
     try {
       setError(null)
-      setIsTestingMic(true)
-
-      // Forcer la reprise du contexte audio si nécessaire
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume()
-      }
 
       // Demander explicitement l'accès au microphone
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -34,59 +28,61 @@ const MicrophoneTest: React.FC = () => {
 
       setHasPermission(true)
       streamRef.current = stream
+      setIsTestingMic(true) // Mettre ici APRÈS avoir obtenu le stream
 
       // Créer le contexte audio
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
       const audioContext = audioContextRef.current
+
+      // Forcer la reprise du contexte audio si nécessaire
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume()
+      }
 
       // Créer l'analyseur
       analyserRef.current = audioContext.createAnalyser()
       const analyser = analyserRef.current
 
       analyser.fftSize = 2048 // Plus grande FFT pour meilleure sensibilité
-      analyser.smoothingTimeConstant = 0.3 // Moins de lissage pour plus de réactivité
-      analyser.minDecibels = -100 // Plus sensible aux sons faibles
+      analyser.smoothingTimeConstant = 0.1 // Très réactif
+      analyser.minDecibels = -90 // Très sensible
       analyser.maxDecibels = -10
 
       // Connecter le microphone
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
 
-      // Analyser le niveau audio avec les deux méthodes
-      const frequencyData = new Uint8Array(analyser.frequencyBinCount)
-      const timeDomainData = new Uint8Array(analyser.fftSize)
+      // Analyser le niveau audio - Version simplifiée et plus robuste
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
       const updateLevel = () => {
-        if (!analyser || !isTestingMic) return
+        if (!analyser) return
 
-        // Méthode 1: Analyse fréquentielle
-        analyser.getByteFrequencyData(frequencyData)
-        const freqAverage = frequencyData.reduce((sum, value) => sum + value, 0) / frequencyData.length
+        try {
+          analyser.getByteFrequencyData(dataArray)
 
-        // Méthode 2: Analyse temporelle (plus sensible aux sons de guitare)
-        analyser.getByteTimeDomainData(timeDomainData)
-        let rms = 0
-        for (let i = 0; i < timeDomainData.length; i++) {
-          const sample = (timeDomainData[i] - 128) / 128 // Normaliser -1 à 1
-          rms += sample * sample
+          // Calculer le niveau avec amplification
+          let sum = 0
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i]
+          }
+          const average = sum / dataArray.length
+          const level = Math.min(Math.round((average / 255) * 100 * 3), 100) // Amplifier x3
+
+          setMicLevel(level)
+
+          // Debug: toujours afficher pour diagnostic
+          console.log(`Audio: ${average.toFixed(1)}/255, Niveau: ${level}%`)
+
+          if (isTestingMic) {
+            animationRef.current = requestAnimationFrame(updateLevel)
+          }
+        } catch (e) {
+          console.error('Erreur analyse audio:', e)
         }
-        rms = Math.sqrt(rms / timeDomainData.length)
-        const timeLevel = rms * 100 * 5 // Amplifier pour la guitare
-
-        // Prendre le maximum des deux méthodes
-        const level = Math.max(freqAverage / 2.55, timeLevel)
-        const clampedLevel = Math.min(Math.round(level), 100)
-
-        setMicLevel(clampedLevel)
-
-        // Debug: afficher dans la console pour diagnostic
-        if (clampedLevel > 0) {
-          console.log(`Niveau détecté: ${clampedLevel}% (freq: ${freqAverage.toFixed(1)}, time: ${timeLevel.toFixed(1)})`)
-        }
-
-        animationRef.current = requestAnimationFrame(updateLevel)
       }
 
+      // Démarrer l'analyse
       updateLevel()
 
     } catch (err) {
