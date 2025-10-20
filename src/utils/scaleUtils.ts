@@ -84,12 +84,12 @@ export const MAJOR_SCALE_PATTERN = [
 export function generateScaleNotes(
   pattern: Array<{ fret: number; string: number; degree: number; isRoot: boolean }>,
   position: number,
-  rootNote: string
+  _rootNote: string // Préfixe _ pour indiquer que c'est intentionnellement inutilisé pour l'instant
 ): ScaleNote[] {
   return pattern.map(patternNote => {
     const actualFret = position + patternNote.fret
     const actualNote = getNoteAtFret(patternNote.string, actualFret)
-
+    
     return {
       fret: actualFret,
       string: patternNote.string,

@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['*.png', '*.ico', '*.svg'],
+      includeAssets: ['logo16.png', 'logo32.png', 'logo192.png', 'logo512.png', 'apple-touch-icon.png', 'GuitarLearning.ico'],
       manifest: {
         name: 'Guitar Learning - Accordeur de Guitare',
         short_name: 'Guitar Learning',
@@ -25,38 +25,20 @@ export default defineConfig({
           {
             src: '/logo192.png',
             sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
+            type: 'image/png'
           },
           {
             src: '/logo512.png',
             sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
+            type: 'image/png'
           }
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-              },
-              cacheKeyWillBeUsed: async ({ request }) => {
-                return `${request.url}`
-              }
-            }
-          }
-        ]
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
       devOptions: {
-        enabled: false // Désactiver PWA en développement pour éviter les conflits
+        enabled: false
       }
     })
   ],

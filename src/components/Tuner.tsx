@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Mic, MicOff, Volume2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { Mic, MicOff } from 'lucide-react'
 import { GUITAR_TUNING, type GuitarNote, findClosestNote } from '../utils/guitarTuning'
 import useAudioAnalyzer from '../hooks/useAudioAnalyzer'
 

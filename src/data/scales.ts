@@ -1,5 +1,5 @@
 import type { ScaleData } from '../components/ScaleDiagram'
-import { PENTATONIC_MINOR_PATTERN, PENTATONIC_MAJOR_PATTERN, MAJOR_SCALE_PATTERN } from '../utils/scaleUtils'
+import { PENTATONIC_MINOR_PATTERN, PENTATONIC_MAJOR_PATTERN } from '../utils/scaleUtils'
 
 export interface ScaleGroup {
   name: string

@@ -31,7 +31,7 @@ const AnimatedTablature: React.FC<AnimatedTablatureProps> = ({
   const [volume, setVolume] = useState(0.5)
 
   const audioContextRef = useRef<AudioContext | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
 
   // Fréquences des notes (en Hz)
@@ -112,7 +112,7 @@ const AnimatedTablature: React.FC<AnimatedTablatureProps> = ({
 
     // Programmer la note suivante
     const adjustedDuration = (note.duration * 60000) / (tempo * 480) // Ajustement selon le tempo
-    timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = window.setTimeout(() => {
       if (isPlaying) {
         playNextNote(noteIndex + 1)
       }
@@ -124,7 +124,7 @@ const AnimatedTablature: React.FC<AnimatedTablatureProps> = ({
     setIsPlaying(false)
     setCurrentNoteIndex(-1)
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
+      window.clearTimeout(timeoutRef.current)
     }
   }
 
@@ -138,7 +138,7 @@ const AnimatedTablature: React.FC<AnimatedTablatureProps> = ({
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
+        window.clearTimeout(timeoutRef.current)
       }
     }
   }, [])
