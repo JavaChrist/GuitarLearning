@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import Pitchfinder from 'pitchfinder'
+import useAudioSettings from './useAudioSettings'
 
 interface AudioAnalyzerState {
   frequency: number | null
@@ -14,6 +15,8 @@ const useAudioAnalyzer = () => {
     error: null
   })
 
+  const { settings, getMediaConstraints, getAnalyserConfig } = useAudioSettings()
+
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -25,15 +28,9 @@ const useAudioAnalyzer = () => {
       // Réinitialiser l'état
       setState(prev => ({ ...prev, error: null, isAnalyzing: false }))
 
-      // Demander l'accès au microphone
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          autoGainControl: false,
-          noiseSuppression: false,
-          sampleRate: 44100
-        }
-      })
+      // Demander l'accès au microphone avec les paramètres configurés
+      const mediaConstraints = getMediaConstraints()
+      const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints)
 
       mediaStreamRef.current = stream
 
@@ -45,11 +42,12 @@ const useAudioAnalyzer = () => {
       analyserRef.current = audioContext.createAnalyser()
       const analyser = analyserRef.current
 
-      // Configuration de l'analyseur
-      analyser.fftSize = 4096 // Plus grande FFT pour meilleure précision
-      analyser.smoothingTimeConstant = 0.8
-      analyser.minDecibels = -90
-      analyser.maxDecibels = -10
+      // Configuration de l'analyseur avec les paramètres utilisateur
+      const analyserConfig = getAnalyserConfig()
+      analyser.fftSize = analyserConfig.fftSize
+      analyser.smoothingTimeConstant = analyserConfig.smoothingTimeConstant
+      analyser.minDecibels = analyserConfig.minDecibels
+      analyser.maxDecibels = analyserConfig.maxDecibels
 
       // Connecter le microphone à l'analyseur
       const source = audioContext.createMediaStreamSource(stream)
@@ -58,7 +56,7 @@ const useAudioAnalyzer = () => {
       // Initialiser le détecteur de pitch avec YIN (plus précis pour les instruments)
       pitchDetectorRef.current = Pitchfinder.YIN({
         sampleRate: audioContext.sampleRate,
-        threshold: 0.1 // Seuil de confiance
+        threshold: settings.threshold // Seuil de confiance configurable
       })
 
       // Buffer pour les données audio
@@ -78,7 +76,11 @@ const useAudioAnalyzer = () => {
         const frequency = pitchDetectorRef.current(dataArray)
 
         // Filtrer les fréquences valides (dans la gamme de la guitare)
-        if (frequency && frequency >= 70 && frequency <= 400) {
+        // Plage étendue et sensibilité ajustable
+        const minFreq = 70 - (settings.sensitivity * 0.3)
+        const maxFreq = 400 + (settings.sensitivity * 2)
+
+        if (frequency && frequency >= minFreq && frequency <= maxFreq) {
           setState(prev => ({
             ...prev,
             frequency: Math.round(frequency * 100) / 100 // Arrondir à 2 décimales
@@ -115,7 +117,7 @@ const useAudioAnalyzer = () => {
         frequency: null
       }))
     }
-  }, [])
+  }, [getMediaConstraints, getAnalyserConfig, settings.threshold, settings.sensitivity])
 
   const stopAnalysis = useCallback(() => {
     // Arrêter l'animation
