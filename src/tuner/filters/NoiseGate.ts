@@ -15,8 +15,8 @@ export class NoiseGate {
   private sampleRate: number
   private isOpen: boolean = false
   private envelope: number = 0
-  private attackCoeff: number
-  private releaseCoeff: number
+  private attackCoeff: number = 0
+  private releaseCoeff: number = 0
 
   constructor(sampleRate: number = 48000, settings?: Partial<NoiseGateSettings>) {
     this.sampleRate = sampleRate
