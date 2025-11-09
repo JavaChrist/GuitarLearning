@@ -220,3 +220,4 @@ Ce projet est sous licence MIT. Voir `LICENSE` pour plus de détails.
 ---
 
 **Guitar Learning** - Développé avec ❤️ pour les musiciens
+# Accordeur de Guitare Intégré
