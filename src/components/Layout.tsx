@@ -1,5 +1,5 @@
 import React from 'react'
-import { Music, BookOpen, Scale, Target, Settings, Home } from 'lucide-react'
+import { Music, BookOpen, Scale, Target, Settings, Home, Mic } from 'lucide-react'
 import type { Page } from '../App'
 
 interface LayoutProps {
@@ -14,6 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
     { id: 'chords', label: 'Accords', icon: BookOpen },
     { id: 'scales', label: 'Gammes', icon: Scale },
     { id: 'exercises', label: 'Exercices', icon: Target },
+    { id: 'tuner', label: 'Accordeur', icon: Mic },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ] as const
 

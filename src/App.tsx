@@ -5,8 +5,9 @@ import Chords from './components/Chords'
 import Scales from './components/Scales'
 import Exercises from './components/Exercises'
 import Settings from './components/Settings'
+import TunerPage from './pages/TunerPage'
 
-export type Page = 'home' | 'chords' | 'scales' | 'exercises' | 'settings'
+export type Page = 'home' | 'chords' | 'scales' | 'exercises' | 'tuner' | 'settings'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
@@ -21,6 +22,8 @@ function App() {
         return <Scales />
       case 'exercises':
         return <Exercises />
+      case 'tuner':
+        return <TunerPage />
       case 'settings':
         return <Settings />
       default:
