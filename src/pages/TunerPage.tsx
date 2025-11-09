@@ -75,6 +75,9 @@ const TunerPage: React.FC = () => {
       setErrorMessage('')
       setShowPermissionHelp(false)
       
+      // CRITIQUE pour iOS : L'interaction utilisateur est nécessaire pour activer l'audio
+      // Nous sommes dans un gestionnaire d'événement, donc c'est le bon moment
+      
       try {
         await tunerEngine.start()
         setStatus('running')
@@ -109,9 +112,23 @@ const TunerPage: React.FC = () => {
     tunerEngine.setNoiseGateThreshold(threshold)
   }, [tunerEngine])
 
-  const handleReferenceAudioToggle = useCallback(() => {
+  const handleReferenceAudioToggle = useCallback(async () => {
     const targetFreq = tunerState.targetFrequency || 440
-    referenceAudio.toggle(targetFreq)
+    
+    // Pour iOS : Assurer que le contexte audio est activé
+    try {
+      await referenceAudio.toggle(targetFreq)
+    } catch (error) {
+      console.warn('Erreur audio de référence (normal sur iOS):', error)
+      // Réessayer après un court délai
+      setTimeout(async () => {
+        try {
+          await referenceAudio.toggle(targetFreq)
+        } catch (retryError) {
+          console.warn('Deuxième tentative échouée:', retryError)
+        }
+      }, 200)
+    }
   }, [referenceAudio, tunerState.targetFrequency])
 
   const handleResetToDefaults = useCallback(() => {

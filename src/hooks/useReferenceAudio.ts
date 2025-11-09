@@ -24,11 +24,25 @@ export const useReferenceAudio = () => {
   // Initialise le contexte audio
   const initAudioContext = useCallback(async () => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext()
+      // Détection iOS pour paramètres spécifiques
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      
+      audioContextRef.current = new AudioContext({
+        sampleRate: isIOS ? 44100 : 48000,
+        latencyHint: 'interactive'
+      })
     }
 
+    // CRITIQUE pour iOS : Activation du contexte audio
     if (audioContextRef.current.state === 'suspended') {
       await audioContextRef.current.resume()
+      
+      // Double vérification pour iOS - parfois nécessaire
+      if (audioContextRef.current.state === 'suspended') {
+        // Attendre un peu et réessayer
+        await new Promise(resolve => setTimeout(resolve, 100))
+        await audioContextRef.current.resume()
+      }
     }
 
     return audioContextRef.current
@@ -164,3 +178,4 @@ export const useReferenceAudio = () => {
     cleanup
   }
 }
+

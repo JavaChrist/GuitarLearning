@@ -118,11 +118,26 @@ export class TunerEngine {
   private errorCallback?: (error: string) => void
 
   constructor(sampleRate: number = 48000) {
+    // Détection iOS pour paramètres optimisés
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    
+    // Paramètres adaptés pour iOS
+    if (isIOS) {
+      this.settings.noiseGate.threshold = -35 // Seuil plus élevé sur iOS
+      this.settings.sensitivity = 0.6 // Sensibilité réduite
+      this.settings.smoothingFactor = 0.3 // Plus de lissage
+    }
+    
     this.pitchDetector = new PitchDetector(sampleRate, 2048, 0.15, this.settings.sensitivity)
     this.noiseGate = new NoiseGate(sampleRate, this.settings.noiseGate)
     
     // Charger les paramètres depuis localStorage
     this.loadSettings()
+    
+    // Log pour debug iOS
+    if (isIOS) {
+      console.log('🍎 iOS détecté - Paramètres optimisés activés')
+    }
   }
 
   /**
@@ -134,35 +149,73 @@ export class TunerEngine {
     }
 
     try {
-      // Demande d'accès au microphone
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+      // Détection iOS/Safari pour paramètres spécifiques
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+      
+      // Paramètres audio adaptés pour iOS
+      const audioConstraints = {
         audio: {
           echoCancellation: false,
-          noiseSuppression: true,
+          noiseSuppression: false, // Désactivé sur iOS
           autoGainControl: false,
-          sampleRate: 48000
+          sampleRate: isIOS ? 44100 : 48000, // iOS préfère 44.1kHz
+          channelCount: 1,
+          latency: 0.01 // Latence faible
         }
-      })
+      }
 
-      // Création du contexte audio
-      this.audioContext = new AudioContext({ sampleRate: 48000 })
+      // Demande d'accès au microphone
+      this.mediaStream = await navigator.mediaDevices.getUserMedia(audioConstraints)
+
+      // Création du contexte audio avec sample rate adapté
+      const sampleRate = isIOS ? 44100 : 48000
+      this.audioContext = new AudioContext({ 
+        sampleRate,
+        latencyHint: 'interactive'
+      })
       
+      // CRITIQUE pour iOS : Forcer le démarrage du contexte audio
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume()
+        
+        // Double vérification pour iOS
+        if (this.audioContext.state === 'suspended') {
+          // Jouer un son silencieux pour activer le contexte
+          const oscillator = this.audioContext.createOscillator()
+          const gainNode = this.audioContext.createGain()
+          gainNode.gain.setValueAtTime(0, this.audioContext.currentTime)
+          oscillator.connect(gainNode)
+          gainNode.connect(this.audioContext.destination)
+          oscillator.start()
+          oscillator.stop(this.audioContext.currentTime + 0.1)
+          
+          await this.audioContext.resume()
+        }
       }
 
       const source = this.audioContext.createMediaStreamSource(this.mediaStream)
       
-      // Tentative d'utilisation d'AudioWorklet (plus performant)
-      try {
-        await this.setupAudioWorklet(source)
-      } catch (error) {
-        console.warn('AudioWorklet non disponible, utilisation de ScriptProcessorNode:', error)
+      // Sur iOS, préférer ScriptProcessorNode (plus stable)
+      if (isIOS || isSafari) {
+        console.log('iOS/Safari détecté - Utilisation de ScriptProcessorNode')
         this.setupScriptProcessor(source)
+      } else {
+        // Tentative d'utilisation d'AudioWorklet sur autres plateformes
+        try {
+          await this.setupAudioWorklet(source)
+        } catch (error) {
+          console.warn('AudioWorklet non disponible, utilisation de ScriptProcessorNode:', error)
+          this.setupScriptProcessor(source)
+        }
       }
 
       this.isRunning = true
       this.lastUpdateTime = performance.now()
+      
+      // Mise à jour du détecteur avec le bon sample rate
+      this.pitchDetector = new PitchDetector(sampleRate, 2048, 0.15, this.settings.sensitivity)
+      this.noiseGate = new NoiseGate(sampleRate, this.settings.noiseGate)
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
@@ -251,20 +304,35 @@ export class TunerEngine {
 
     const currentTime = performance.now()
     
-    // Limitation du taux de rafraîchissement (60 FPS max)
-    if (currentTime - this.lastUpdateTime < 16) {
+    // Détection iOS pour ajustement du taux de rafraîchissement
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const refreshRate = isIOS ? 33 : 16 // 30 FPS sur iOS, 60 FPS ailleurs
+    
+    // Limitation du taux de rafraîchissement
+    if (currentTime - this.lastUpdateTime < refreshRate) {
       return
     }
     this.lastUpdateTime = currentTime
 
-    // Application de la porte de bruit
-    const gatedBuffer = this.noiseGate.process(buffer)
+    // Vérification de la qualité du buffer
+    if (buffer.length === 0 || buffer.every(sample => sample === 0)) {
+      this.emitState({
+        isActive: false,
+        noiseGateOpen: false,
+        voiceDetected: false
+      })
+      return
+    }
+
+    // Application de la porte de bruit avec seuils adaptés iOS
+    const adjustedBuffer = isIOS ? this.amplifyBuffer(buffer, 2.0) : buffer
+    const gatedBuffer = this.noiseGate.process(adjustedBuffer)
     const noiseGateOpen = this.noiseGate.getIsOpen()
     
-    // Détection de voix
-    const voiceDetected = this.noiseGate.detectVoice(buffer)
+    // Détection de voix (désactivée sur iOS pour éviter les faux positifs)
+    const voiceDetected = isIOS ? false : this.noiseGate.detectVoice(buffer)
     
-    if (!noiseGateOpen || voiceDetected) {
+    if (!noiseGateOpen) {
       this.emitState({
         isActive: false,
         noiseGateOpen,
@@ -273,12 +341,12 @@ export class TunerEngine {
       return
     }
 
-    // Détection de pitch
+    // Détection de pitch avec paramètres adaptés
     const pitchResult = this.settings.useYIN 
       ? this.pitchDetector.detect(gatedBuffer)
       : this.pitchDetector.detectMPM(gatedBuffer)
 
-    if (!pitchResult) {
+    if (!pitchResult || (isIOS && pitchResult.confidence < 0.6)) {
       this.emitState({
         isActive: false,
         noiseGateOpen,
@@ -289,6 +357,17 @@ export class TunerEngine {
 
     // Traitement du résultat
     this.processPitchResult(pitchResult, noiseGateOpen, voiceDetected)
+  }
+
+  /**
+   * Amplifie le buffer pour iOS (microphone souvent plus faible)
+   */
+  private amplifyBuffer(buffer: Float32Array, gain: number): Float32Array {
+    const amplified = new Float32Array(buffer.length)
+    for (let i = 0; i < buffer.length; i++) {
+      amplified[i] = Math.max(-1, Math.min(1, buffer[i] * gain))
+    }
+    return amplified
   }
 
   /**
