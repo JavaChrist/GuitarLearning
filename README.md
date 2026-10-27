@@ -1,223 +1,130 @@
-# Guitar Learning - Accordeur de Guitare 🎸
+# Guitar Learning
 
-Application d'apprentissage de la guitare avec accordeur intégré haute précision, développée avec Vite + React + TypeScript + Tailwind CSS.
+Guitar Learning est une application web en français pour apprendre la guitare. Elle propose un accordeur au microphone, une bibliothèque de diagrammes d’accords, des diagrammes de gammes pentatoniques et des exercices de tablature. Tout le contenu est intégré à l’application : il n’y a ni compte, ni serveur, ni base de données.
 
-## 🎵 Fonctionnalités de l'Accordeur
+L’interface s’adresse aux personnes qui débutent ou qui progressent à la guitare. L’écran Paramètres indique que l’application est développée par Christian. Le numéro affiché est 1.0.0, alors que `package.json` indique la version `0.0.0`.
 
-### Détection de Pitch Haute Précision
-- **Algorithmes YIN et MPM** : Détection de fréquence fondamentale avec précision ≤ ±3 cents
-- **Plage étendue** : Support complet de E2 à C6 (82-2093 Hz)
-- **Latence ultra-faible** : < 50-80ms du microphone à l'affichage
-- **AudioWorklet** : Traitement audio dans un thread séparé pour des performances optimales
+Aucun fichier `AGENTS.md` ou `.cursorrules` n’est présent dans le dépôt. Le guide `ACCORDEUR.md` décrit des essais de l’accordeur ; son exemple d’adresse utilise le port 5173, alors que le serveur de développement est configuré sur le port **3005**.
 
-### Modes d'Accordage
-- **Mode Automatique** : Détection automatique de la note jouée
-- **Mode Corde Spécifique** : Accordage ciblé corde par corde
-- **Accordages Prédéfinis** :
-  - Standard (E-A-D-G-B-E)
-  - Drop D
-  - DADGAD
-  - Open G
-  - Open D
+## Fonctionnalités
 
-### Interface Utilisateur Intuitive
-- **Aiguille analogique** : Jauge fluide -50 à +50 cents avec animations 60fps
-- **LEDs de qualité** : Indicateurs visuels Trop bas / Juste / Trop haut
-- **Affichage note** : Note détectée avec octave et fréquence
-- **Design responsive** : Optimisé mobile-first avec support tactile
+La navigation se fait par une barre en bas de l’écran. Les sections sont Accueil, Accords, Gammes, Exercices, Accordeur et Paramètres. Le changement de page reste dans la mémoire du navigateur : l’adresse ne change pas. Les cartes de l’accueil ne sont pas des liens.
 
-### Fonctionnalités Avancées
-- **Calibration A4** : Réglable de 415 à 466 Hz (baroque à moderne)
-- **Son de référence** : Oscillateur WebAudio intégré
-- **Porte de bruit** : Filtrage intelligent des signaux faibles
-- **Détection vocale** : Évite les interférences de la voix
-- **Retour haptique** : Vibration quand l'accordage est juste
+### Opérationnelles
 
-## 🏗️ Architecture Technique
+- **Accueil.** Présente l’application et oriente vers la barre de navigation.
+- **Accords.** Affiche des diagrammes fixes, avec les doigtés, les cordes à vide et les cordes non jouées. Un filtre permet de garder les accords faciles, moyens ou difficiles. Les groupes sont :
+  - majeurs : C, G, D, A, E, F ;
+  - mineurs : Am, Em, Dm, Bm, Fm, Cm ;
+  - septièmes : G7, C7, D7, A7, E7, B7 ;
+  - barrés : F, Bm, F#m, B.
+- **Gammes pentatoniques.** Deux diagrammes sont disponibles : pentatonique mineure de La et pentatonique majeure de Do. Chaque diagramme propose cinq positions sur le manche. Les notes sont colorées selon leur degré.
+- **Accordeur.** Après autorisation du microphone, l’application détecte une note à la fois avec l’algorithme YIN. Elle affiche le nom français de la note, l’octave, la fréquence, une aiguille de −50 à +50 cents et des voyants trop bas, juste et trop haut. Le seuil « juste » est de ±5 cents, le seuil « acceptable » de ±15 cents.
+- **Modes d’accordage.** Le mode automatique reconnaît la note jouée. Le mode corde vise une corde précise. Les accordages proposés sont Standard (E-A-D-G-B-E), Drop D, DADGAD, Sol ouvert (Open G) et Ré ouvert (Open D).
+- **Réglages de l’accordeur.** La référence du La peut aller de 415 à 466 Hz (440 Hz par défaut). La sensibilité va de 10 % à 99 % (80 % par défaut). Le seuil de bruit va de −60 dB à 0 dB (−40 dB par défaut). Ces réglages sont enregistrés dans le navigateur, sous la clé `tuner-settings`. Un bouton les remet aux valeurs de départ. Sur iPhone et iPad, le premier démarrage utilise une sensibilité de 60 % et un seuil de −35 dB, tant qu’aucun réglage n’a été enregistré.
+- **Son de référence de l’accordeur.** Un oscillateur joue la fréquence de la corde choisie, ou 440 Hz si aucune cible n’est définie.
+- **Retour du téléphone.** Quand l’accordeur juge la note juste, l’appareil vibre brièvement si le navigateur le permet.
+- **Aide en cas de refus du microphone.** Un message explique comment autoriser le micro.
+- **Paramètres.** Écran d’information : version affichée, nom du développeur et courte description. Il ne contient aucun réglage.
 
-### Structure des Fichiers
-```
-src/
-├── pages/
-│   └── TunerPage.tsx              # Page principale de l'accordeur
-├── components/tuner/
-│   ├── Needle.tsx                 # Aiguille analogique avec animation
-│   ├── PitchReadout.tsx          # Affichage note + fréquence
-│   ├── QualityLED.tsx            # Indicateurs visuels d'accordage
-│   ├── StringSelector.tsx        # Sélection mode/corde/accordage
-│   ├── Controls.tsx              # Contrôles calibration/paramètres
-│   └── SpectrumDebug.tsx         # Débogage FFT (mode ?debug=1)
-├── tuner/
-│   ├── TunerEngine.ts            # Moteur principal
-│   ├── PitchDetector.ts          # Détection YIN/MPM
-│   ├── filters/
-│   │   └── NoiseGate.ts          # Filtrage du bruit
-│   └── tests/
-│       └── synth.ts              # Tests avec signaux synthétiques
-├── hooks/
-│   └── useReferenceAudio.ts      # Hook audio de référence
-└── public/
-    └── tuner-audio-worklet.js    # AudioWorklet pour performances
-```
+### Partielles
 
-### Moteur de Détection
-- **PitchDetector.ts** : Implémentation YIN et MPM avec interpolation parabolique
-- **TunerEngine.ts** : Mapping fréquence/note, gestion d'état, lissage
-- **NoiseGate.ts** : Porte de bruit avec détection vocale
+- **Lecture des exercices.** Cinq tablatures pentatoniques sont proposées, avec un réglage de tempo (60 à 200 BPM) et de volume. Le bouton Play met en évidence la première note. Lors d’un essai dans le navigateur, les notes suivantes ne se succèdent pas : la tablature reste sur la première note pendant que le bouton affiche Pause.
+- **Son des exercices.** Le son est un signal synthétique. Sa hauteur correspond à une octave fixe (autour du Do du milieu), et non à la hauteur réelle de la frette indiquée.
+- **Exercice « Hammer-on/Pull-off ».** C’est une suite de notes sur les mêmes cordes. Aucun geste particulier n’est animé.
+- **Filtres des gammes.** Les boutons Majeure, Mineure et Modale existent, mais aucune gamme n’a ces catégories. Ils affichent « Aucune gamme ne correspond aux filtres sélectionnés ». Seules les deux pentatoniques sont présentes, alors que le titre de la page parle de « Gammes et Modes ».
+- **Détection de la voix.** Hors iPhone et iPad, l’accordeur estime si le son ressemble à une voix et peut l’indiquer. Cette estimation est désactivée sur iPhone et iPad. Elle ne coupe pas la détection de note.
+- **Second algorithme (MPM).** Il est présent dans le moteur, avec un réglage interne `useYIN`. L’écran affiche toujours « YIN » et ne permet pas de changer d’algorithme.
+- **Indication de latence.** L’écran affiche « ~50 ms » comme texte fixe. Ce n’est pas une mesure du moment.
+- **Mode debug.** Ajouter `?debug=1` à l’adresse prépare un affichage de forme d’onde et de spectre. Il n’apparaît que lorsque l’accordeur est déjà démarré.
+- **Application installable.** Un manifeste et des icônes sont fournis, et l’outil de construction peut générer un service worker. Au chargement de la page, un script retire les service workers et vide les caches. Le fonctionnement hors ligne n’est donc pas actif. Les raccourcis du manifeste (`?page=tuner`, `?page=chords`, `?page=exercises`) rouvrent l’accueil : l’application ne lit pas ces adresses.
+- **Tests de l’accordeur.** Des essais sur signaux synthétiques existent dans `src/tuner/tests`. Ils ne sont pas chargés par l’application, et `package.json` ne contient pas de commande `npm test`. Les fonctions de console citées dans `ACCORDEUR.md` ne sont donc pas disponibles dans la page ouverte.
 
-### Traitement Audio
-- **getUserMedia** : Accès microphone avec paramètres optimisés
-- **AudioWorklet** : Traitement temps réel (fallback ScriptProcessorNode)
-- **Fenêtrage Hanning** : Réduction des artefacts spectraux
-- **Lissage exponentiel** : Stabilisation de l'affichage
+### Simulées
 
-## 🧪 Tests et Validation
+- Le texte d’accueil parle de diagrammes d’accords interactifs, de gammes majeures et mineures pour improviser, et d’exercices adaptés au niveau. Les diagrammes d’accords sont des images fixes, les gammes disponibles sont uniquement pentatoniques, et les exercices ne suivent pas une progression enregistrée.
+- L’exercice nommé hammer-on et pull-off reprend le même lecteur que les autres tablatures.
 
-### Tests Automatisés
-Le système inclut une suite de tests complète avec signaux synthétiques :
+### Prévues
 
-```typescript
-import { PitchDetector } from './tuner/PitchDetector'
-import { TunerTester } from './tuner/tests/synth'
+L’écran Exercices annonce, sous le titre « Prochainement » :
 
-const detector = new PitchDetector()
-const tester = new TunerTester()
+- exercices d’arpèges animés ;
+- gammes majeures et mineures en exercice ;
+- techniques de bending et de vibrato ;
+- métronome visuel ;
+- suivi des progrès ;
+- exercices de rythme.
 
-// Test de précision sur les fréquences de guitare
-const results = await tester.runFullTestSuite(detector)
-```
+Aucune de ces fonctions n’est implémentée. Il n’y a pas de compte, d’historique ni de personnalisation.
 
-### Critères de Validation
-- **Précision fréquence** : ≤ 0.5% d'erreur sur les notes de guitare
-- **Précision cents** : ≤ ±3 cents sur signaux propres
-- **Stabilité** : Écart-type < 5 cents sur 2 secondes
-- **Robustesse bruit** : Fonctionnel avec SNR ≥ 20dB
+## Stack
 
-### Fréquences de Test
-- E2 (82.41 Hz) - 6ème corde
-- A2 (110.00 Hz) - 5ème corde  
-- D3 (146.83 Hz) - 4ème corde
-- G3 (196.00 Hz) - 3ème corde
-- B3 (246.94 Hz) - 2ème corde
-- E4 (329.63 Hz) - 1ère corde
-- A4 (440.00 Hz) - Référence
-- E5 (659.25 Hz) - 12ème frette
+- React 19 et TypeScript
+- Vite 7
+- Tailwind CSS 4
+- Lucide React pour les icônes
+- Web Audio et `getUserMedia` pour le microphone et les sons
+- AudioWorklet (`public/tuner-audio-worklet.js`), avec repli sur `ScriptProcessorNode`, notamment sur iPhone et iPad
+- `vite-plugin-pwa` pour le manifeste
 
-## 🚀 Installation et Utilisation
+L’application est une seule page. Les données d’accords, de gammes et d’exercices sont des fichiers TypeScript dans `src/data`.
 
-### Prérequis
-- Node.js 18+
-- Navigateur moderne avec support WebAudio
-- Microphone fonctionnel
-- HTTPS requis pour getUserMedia (automatique en production)
+## Installation
 
-### Installation
+Prérequis : Node.js compatible avec Vite 7. Le projet ne déclare pas de version minimale dans `package.json`. Un navigateur récent avec accès au microphone est nécessaire pour l’accordeur. En ligne, le navigateur exige une adresse sécurisée (HTTPS) pour le microphone.
+
 ```bash
 npm install
 npm run dev
 ```
 
-### Utilisation
-1. Ouvrir l'application
-2. Naviguer vers l'onglet "Accordeur" 🎤
-3. Autoriser l'accès au microphone
-4. Choisir le mode (Auto/Corde spécifique)
-5. Jouer une note et ajuster selon l'aiguille
+Le serveur de développement écoute sur le port **3005** et accepte les connexions du réseau local :
 
-### Mode Débogage
-Ajouter `?debug=1` à l'URL pour afficher :
-- Forme d'onde temporelle
-- Analyse spectrale FFT
-- Métriques de performance
-
-## ⚙️ Configuration
-
-### Paramètres Disponibles
-- **Calibration A4** : 415-466 Hz (défaut: 440 Hz)
-- **Sensibilité** : 10-99% (défaut: 80%)
-- **Seuil de bruit** : -60 à 0 dB (défaut: -40 dB)
-- **Seuils d'accordage** :
-  - Juste : ±5 cents (vert)
-  - Acceptable : ±15 cents (orange)
-  - Désaccordé : >±15 cents (rouge)
-
-### Sauvegarde
-Les paramètres sont automatiquement sauvegardés dans `localStorage`.
-
-## 🎯 Limitations et Conseils
-
-### Limitations Techniques
-- **Instruments** : Optimisé pour guitare acoustique/électrique
-- **Environnement** : Nécessite un environnement relativement calme
-- **Polyphonie** : Détection monophonique uniquement
-- **Latence** : Variable selon le navigateur et l'appareil
-
-### Conseils d'Utilisation
-- **Environnement calme** : Évitez les bruits de fond
-- **Notes claires** : Jouez les notes distinctement, une par une
-- **Distance microphone** : 20-50cm de l'instrument
-- **Tension progressive** : Accordez en montant progressivement
-- **Vérification** : Contrôlez l'accordage sur plusieurs octaves
-
-### Dépannage
-- **Pas de détection** : Vérifiez les permissions microphone
-- **Détection instable** : Augmentez le seuil de bruit
-- **Fausses détections** : Réduisez la sensibilité
-- **Latence élevée** : Utilisez un navigateur récent (Chrome/Firefox)
-
-## 🔧 Développement
-
-### Scripts Disponibles
-```bash
-npm run dev      # Serveur de développement
-npm run build    # Build de production
-npm run preview  # Aperçu du build
-npm run deploy   # Déploiement Vercel
+```text
+http://localhost:3005/
 ```
 
-### Tests
-```bash
-# Tests unitaires (à implémenter)
-npm run test
+## Configuration
 
-# Tests manuels avec signaux synthétiques
-# Utiliser la classe TunerTester dans la console du navigateur
+Aucune variable d’environnement n’est lue par l’application. Les fichiers `.env` sont ignorés par Git, mais aucun n’est fourni et aucun nom de variable n’est utilisé.
+
+Les seuls réglages persistants sont ceux de l’accordeur, stockés localement dans le navigateur.
+
+## Commandes
+
+```bash
+npm run dev       # serveur de développement, port 3005
+npm run build     # vérification TypeScript puis construction
+npm run preview   # aperçu du dossier construit
+npm run deploy    # construction puis commande Vercel de production
 ```
 
-### Architecture PWA
-- Service Worker pour le cache
-- Manifest pour l'installation
-- Icônes adaptatives
-- Support hors-ligne partiel
+La commande `deploy` est définie, mais le dépôt ne contient pas de fichier de configuration Vercel ni d’adresse publique. Elle ne doit pas être lancée pour vérifier le projet en local.
 
-## 📱 Compatibilité
+Il n’existe pas de commande de test. Aucun fichier `LICENSE` n’est présent : la licence reste à confirmer.
 
-### Navigateurs Supportés
-- ✅ Chrome 88+ (recommandé)
-- ✅ Firefox 84+
-- ✅ Safari 14.1+
-- ✅ Edge 88+
-- ❌ Internet Explorer (non supporté)
+## Limites utiles
 
-### Appareils
-- 📱 **Mobile** : iOS 14.5+, Android 8+
-- 💻 **Desktop** : Windows, macOS, Linux
-- 🎧 **Audio** : Microphone intégré ou externe
+- L’accordeur traite une note à la fois. Il est prévu pour une guitare, dans un endroit plutôt calme.
+- La plage acceptée par le détecteur va d’environ 70 Hz à 2 200 Hz.
+- Les précisions en cents citées dans d’anciennes notes sont des critères des essais synthétiques. Elles ne sont pas mesurées dans l’interface.
+- L’accueil et les conseils restent des textes : ils ne lancent pas les pages, un métronome ou une piste d’accompagnement.
 
-## 🤝 Contribution
+## Structure utile
 
-Les contributions sont les bienvenues ! Zones d'amélioration prioritaires :
-- Tests unitaires automatisés
-- Support d'autres instruments
-- Algorithmes de détection alternatifs
-- Amélioration de l'UI/UX
-- Optimisations performances
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir `LICENSE` pour plus de détails.
-
----
-
-**Guitar Learning** - Développé avec ❤️ pour les musiciens
-# Accordeur de Guitare Intégré
+```text
+src/
+├── App.tsx                         # choix de la page affichée
+├── components/
+│   ├── Home.tsx, Chords.tsx, Scales.tsx, Exercises.tsx, Settings.tsx
+│   ├── ChordDiagram.tsx, ScaleDiagram.tsx, AnimatedTablature.tsx
+│   └── tuner/                      # aiguille, voyants, cordes, réglages
+├── pages/TunerPage.tsx
+├── data/                           # accords, gammes, exercices
+├── tuner/                          # moteur, détection, filtre, essais
+└── hooks/useReferenceAudio.ts
+public/
+├── manifest.json
+└── tuner-audio-worklet.js
+```
